@@ -175,7 +175,7 @@ class Rabbit:
                 b = derive()
             res += chr(b & 0xFF)
             j -= 1
-            b >>= 1
+            b >>= 8
 
         self._buf = b
         self._buf_bytes = j
