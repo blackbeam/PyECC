@@ -204,16 +204,26 @@ class Rabbit:
         return res
 
     decrypt = encrypt
-        
-    
+
+
 
 if __name__ == "__main__":
 
     import time
 
+    def u128ToLeByteStr(value):
+        le_bytes = [(value >> i) & 0xFF for i in xrange(0, 128, 8)]
+        res = ""
+        for b in le_bytes:
+            res += chr(b)
+
+        return res
+
     # --- Official Test Vectors ---
-    
+
     # RFC 4503 Appendix A.1 - Testing without IV Setup
+
+    ## Test Rabbit::derive
 
     r = Rabbit(0)
     assert r.next().derive() == 0xB15754F036A5D6ECF56B45261C4AF702
@@ -226,11 +236,47 @@ if __name__ == "__main__":
     assert r.next().derive() == 0xE5547473FBDB43508AE53B20204D4C5E
 
     r = Rabbit(0x8395741587E0C733E9E9AB01C09B0043)
-    assert r.next().derive() == 0x0CB10DCDA041CDAC32EB5CFD02D0609B 
+    assert r.next().derive() == 0x0CB10DCDA041CDAC32EB5CFD02D0609B
     assert r.next().derive() == 0x95FC9FCA0F17015A7B7092114CFF3EAD
     assert r.next().derive() == 0x9649E5DE8BFC7F3F924147AD3A947428
 
+    ## Test Rabbit::keystream
+
+    r = Rabbit(0)
+    assert r.keystream(16) == u128ToLeByteStr(0xB15754F036A5D6ECF56B45261C4AF702)
+    assert r.keystream(16) == u128ToLeByteStr(0x88E8D815C59C0C397B696C4789C68AA7)
+    assert r.keystream(16) == u128ToLeByteStr(0xF416A1C3700CD451DA68D1881673D696)
+
+    r = Rabbit(0x912813292E3D36FE3BFC62F1DC51C3AC)
+    assert r.keystream(16) == u128ToLeByteStr(0x3D2DF3C83EF627A1E97FC38487E2519C)
+    assert r.keystream(16) == u128ToLeByteStr(0xF576CD61F4405B8896BF53AA8554FC19)
+    assert r.keystream(16) == u128ToLeByteStr(0xE5547473FBDB43508AE53B20204D4C5E)
+
+    r = Rabbit(0x8395741587E0C733E9E9AB01C09B0043)
+    assert r.keystream(16) == u128ToLeByteStr(0x0CB10DCDA041CDAC32EB5CFD02D0609B)
+    assert r.keystream(16) == u128ToLeByteStr(0x95FC9FCA0F17015A7B7092114CFF3EAD)
+    assert r.keystream(16) == u128ToLeByteStr(0x9649E5DE8BFC7F3F924147AD3A947428)
+
+    ## Test Rabbit::encrypt
+
+    r = Rabbit(0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xB15754F036A5D6ECF56B45261C4AF702 ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x88E8D815C59C0C397B696C4789C68AA7 ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xF416A1C3700CD451DA68D1881673D696 ^ 0)
+
+    r = Rabbit(0x912813292E3D36FE3BFC62F1DC51C3AC)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x3D2DF3C83EF627A1E97FC38487E2519C ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xF576CD61F4405B8896BF53AA8554FC19 ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xE5547473FBDB43508AE53B20204D4C5E ^ 0)
+
+    r = Rabbit(0x8395741587E0C733E9E9AB01C09B0043)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x0CB10DCDA041CDAC32EB5CFD02D0609B ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x95FC9FCA0F17015A7B7092114CFF3EAD ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x9649E5DE8BFC7F3F924147AD3A947428 ^ 0)
+
     # RFC 4503 Appendix A.2 - Testing with IV Setup
+
+    ## Test Rabbit::derive
 
     r = Rabbit(0, 0)
     assert r.next().derive() == 0xC6A7275EF85495D87CCD5D376705B7ED
@@ -246,6 +292,40 @@ if __name__ == "__main__":
     assert r.next().derive() == 0x445AD8C805858DBF70B6AF23A151104D
     assert r.next().derive() == 0x96C8F27947F42C5BAEAE67C6ACC35B03
     assert r.next().derive() == 0x9FCBFC895FA71C17313DF034F01551CB
+
+    ## Test Rabbit::keystream
+
+    r = Rabbit(0, 0)
+    assert r.keystream(16) == u128ToLeByteStr(0xC6A7275EF85495D87CCD5D376705B7ED)
+    assert r.keystream(16) == u128ToLeByteStr(0x5F29A6AC04F5EFD47B8F293270DC4A8D)
+    assert r.keystream(16) == u128ToLeByteStr(0x2ADE822B29DE6C1EE52BDB8A47BF8F66)
+
+    r = Rabbit(0, 0xC373F575C1267E59)
+    assert r.keystream(16) == u128ToLeByteStr(0x1FCD4EB9580012E2E0DCCC9222017D6D)
+    assert r.keystream(16) == u128ToLeByteStr(0xA75F4E10D12125017B2499FFED936F2E)
+    assert r.keystream(16) == u128ToLeByteStr(0xEBC112C393E738392356BDD012029BA7)
+
+    r = Rabbit(0, 0xA6EB561AD2F41727)
+    assert r.keystream(16) == u128ToLeByteStr(0x445AD8C805858DBF70B6AF23A151104D)
+    assert r.keystream(16) == u128ToLeByteStr(0x96C8F27947F42C5BAEAE67C6ACC35B03)
+    assert r.keystream(16) == u128ToLeByteStr(0x9FCBFC895FA71C17313DF034F01551CB)
+
+    ## Test Rabbit::encrypt
+
+    r = Rabbit(0, 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xC6A7275EF85495D87CCD5D376705B7ED ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x5F29A6AC04F5EFD47B8F293270DC4A8D ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x2ADE822B29DE6C1EE52BDB8A47BF8F66 ^ 0)
+
+    r = Rabbit(0, 0xC373F575C1267E59)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x1FCD4EB9580012E2E0DCCC9222017D6D ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xA75F4E10D12125017B2499FFED936F2E ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0xEBC112C393E738392356BDD012029BA7 ^ 0)
+
+    r = Rabbit(0, 0xA6EB561AD2F41727)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x445AD8C805858DBF70B6AF23A151104D ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x96C8F27947F42C5BAEAE67C6ACC35B03 ^ 0)
+    assert r.encrypt(u128ToLeByteStr(0)) == u128ToLeByteStr(0x9FCBFC895FA71C17313DF034F01551CB ^ 0)
 
 
     # --- Performance Tests ---
